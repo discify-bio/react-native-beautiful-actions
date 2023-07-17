@@ -1,0 +1,30 @@
+{
+  "name": "react-native-beautiful-actions",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "private": false,
+  "scripts": {
+    "build": "rm -rf ./lib/* && tsc"
+  },
+  "keywords": [
+    "react native",
+    "react native actions",
+    "react native beautiful actions"
+  ],
+  "author": "Zispidd <zispidd@gmail.com>",
+  "license": "ISC",
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-native": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-portalize": "*",
+    "react-native-reanimated": "^3.0.0",
+    "react-native-safe-area-context": "*",
+    "@react-native-community/blur": "*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0"
+  }
+}
