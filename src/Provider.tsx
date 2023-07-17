@@ -74,6 +74,7 @@ const Provider: React.FC<PropsWithChildren<IProps>> = ({
               header={header}
               close={close}
               actions={actions}
+              config={config}
             />
           )}
         </Portal>
