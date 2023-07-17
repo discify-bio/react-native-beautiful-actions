@@ -32,7 +32,7 @@ const Action: React.FC<IProps> = ({
 
   const gesture = Gesture.Pan().onUpdate(event => {
     const measured = measure(ref) as LayoutRectangle
-    const value = height - measured.height
+    const value = height - (measured?.height ?? 0)
 
     if (event.translationY < (-(value + insets.top + insets.bottom))) {
       translateValue.value = withSpring((translateValue.value) + (event.translationY / 5000), {
