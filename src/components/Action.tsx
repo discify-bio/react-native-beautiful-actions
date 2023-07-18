@@ -1,9 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 import { BlurView } from '@react-native-community/blur'
-import { StyleSheet, Text, TouchableOpacity, View, Dimensions, LayoutRectangle } from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View, Dimensions, LayoutRectangle, Platform } from 'react-native'
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler'
-import Animated, { SharedValue, interpolate, measure, runOnJS, useAnimatedRef, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import Animated, { SharedValue, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Action as ActionType, CloseProperties, ProviderConfig } from '../types'
 
@@ -28,13 +28,13 @@ const Action: React.FC<IProps> = ({
 }) => {
   const insets = useSafeAreaInsets()
   const translateValue = useSharedValue(0)
-  const ref = useAnimatedRef<Animated.View>()
+  
+  const [layout, setLayout] = useState<LayoutRectangle | null>(null)
 
   const gesture = Gesture.Pan().onUpdate(event => {
-    const measured = measure(ref) as LayoutRectangle
-    const value = height - (measured?.height ?? 0)
+    const value = height - (layout?.height ?? 0)
 
-    if (event.translationY < (-(value + insets.top + insets.bottom))) {
+    if (event.translationY < (-(Platform.OS === 'android' ? value + (insets.top * 2) + (insets.bottom * 2) : value - insets.top))) {
       translateValue.value = withSpring((translateValue.value) + (event.translationY / 5000), {
         stiffness: 250,
         damping: 25,
@@ -98,7 +98,7 @@ const Action: React.FC<IProps> = ({
               styles.wrapper,
               containerStyle
             ]}
-            ref={ref}
+            onLayout={event => setLayout(event.nativeEvent.layout)}
           >
             <Block
               actions={actions}
@@ -132,6 +132,13 @@ const Block: React.FC<Pick<IProps, 'actions' | 'header' | 'onClose' | 'config'>>
         style={styles.block}
         // overlayColor='rgba(43, 43, 43, .9)'
       >
+        <View
+          style={styles.indicatorContainer}
+        >
+          <View
+            style={styles.indicator}
+          />
+        </View>
         <ScrollView
           contentContainerStyle={styles.blockWrapper}
           style={{
@@ -293,6 +300,19 @@ const styles = StyleSheet.create({
   },
   actions: {
     rowGap: 24
+  },
+  indicator: {
+    width: '20%',
+    height: 5,
+    borderRadius: 100,
+    backgroundColor: '#fff',
+  },
+  indicatorContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginVertical: 10,
+      marginBottom: 16
   }
 })
 
