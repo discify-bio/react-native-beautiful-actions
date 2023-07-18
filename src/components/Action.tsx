@@ -306,6 +306,9 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 100,
     backgroundColor: '#fff',
+    ...Platform.OS === 'android' ? {
+      marginTop: 10
+    } : {}
   },
   indicatorContainer: {
       display: 'flex',
