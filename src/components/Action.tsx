@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 
 import { BlurView } from '@react-native-community/blur'
-import { StyleSheet, Text, TouchableOpacity, View, Dimensions, LayoutRectangle, Platform } from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View, Dimensions, LayoutRectangle, Platform, NativeSyntheticEvent, NativeScrollEvent, GestureResponderEvent } from 'react-native'
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler'
 import Animated, { SharedValue, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -28,33 +28,40 @@ const Action: React.FC<IProps> = ({
 }) => {
   const insets = useSafeAreaInsets()
   const translateValue = useSharedValue(0)
+
+  const [location, setLocation] = useState(0)
+  const [trueLocation, setTrueLocation] = useState(0)
+  const [isCanBeClosed, setIsCanBeClosed] = useState(true)
+  const ref = useRef<ScrollView>(null)
   
   const [layout, setLayout] = useState<LayoutRectangle | null>(null)
 
-  const gesture = Gesture.Pan().onUpdate(event => {
-    const value = height - (layout?.height ?? 0)
+  const gesture = Gesture.Pan()
+      .simultaneousWithExternalGesture(ref)
+      .onUpdate(event => {
+        const value = height - (layout?.height ?? 0)
 
-    if (event.translationY < (-(Platform.OS === 'android' ? value + (insets.top * 2) + (insets.bottom * 2) : value - insets.top))) {
-      translateValue.value = withSpring((translateValue.value) + (event.translationY / 5000), {
-        stiffness: 250,
-        damping: 25,
-        mass: 1
+        if (event.translationY < (-(Platform.OS === 'android' ? value + (insets.top * 2) + (insets.bottom * 2) : value - insets.top))) {
+          translateValue.value = withSpring((translateValue.value) + (event.translationY / 5000), {
+            stiffness: 250,
+            damping: 25,
+            mass: 1
+          })
+          return
+        }
+
+        if (event.translationY <= 0 || !isCanBeClosed) return
+
+        const newValue = (event.translationY - trueLocation) / 2
+        translateValue.value = (newValue < 0 ? 0 : newValue) / 1.2
       })
-      return
-    }
-
-    translateValue.value = withSpring(event.translationY / 3.2, {
-      stiffness: 250,
-      damping: 25,
-      mass: 1
-    })
-  }).onEnd(event => {
-    if (event.translationY > 150) return runOnJS(onClose)()
-    translateValue.value = withSpring(0, {
-      stiffness: 250,
-      damping: 25
-    })
-  })
+      .onEnd(event => {
+        if ((event.translationY - trueLocation) > 100) return runOnJS(onClose)()
+        translateValue.value = withSpring(0, {
+          stiffness: 250,
+          damping: 25
+        })
+      })
 
   const backdropStyle = useAnimatedStyle(() => {
     return {
@@ -105,6 +112,11 @@ const Action: React.FC<IProps> = ({
               header={header}
               onClose={onClose}
               config={config}
+              location={location}
+              setLocation={setLocation}
+              setIsCanBeClosed={setIsCanBeClosed}
+              setTrueLocation={setTrueLocation}
+              ref={ref}
             />
             <Close
               onClose={onClose}
@@ -118,19 +130,40 @@ const Action: React.FC<IProps> = ({
   )
 }
 
-const Block: React.FC<Pick<IProps, 'actions' | 'header' | 'onClose' | 'config'>> = ({
+interface IBlockProps {
+  location: number
+  setLocation: (value: number) => any
+  setIsCanBeClosed: (value: boolean) => any
+  setTrueLocation: (value: number) => any
+}
+
+const Block = React.forwardRef<ScrollView, Pick<IProps, 'actions' | 'header' | 'onClose' | 'config'> & IBlockProps>(({
   actions,
   header,
   onClose,
-  config
-}) => {
+  config,
+  location,
+  setLocation,
+  setIsCanBeClosed,
+  setTrueLocation
+}, ref) => {
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setLocation(event.nativeEvent.contentOffset.y)
+    if (event.nativeEvent.contentOffset.y <= 0) return setIsCanBeClosed(true)
+    setIsCanBeClosed(false)
+  }
+
+  const onTouchStart = (event: GestureResponderEvent) => {
+    setTrueLocation(location)
+    setLocation(event.nativeEvent.locationY)
+  }
+
   return (
     <View
       style={styles.blockContainer}
     >
       <BlurView
         style={styles.block}
-        // overlayColor='rgba(43, 43, 43, .9)'
       >
         <View
           style={styles.indicatorContainer}
@@ -144,6 +177,11 @@ const Block: React.FC<Pick<IProps, 'actions' | 'header' | 'onClose' | 'config'>>
           style={{
             maxHeight: Dimensions.get('window').height / 1.5
           }}
+          onScroll={onScroll}
+          onTouchStart={onTouchStart}
+          bounces={false}
+          scrollEventThrottle={16}
+          ref={ref}
         >
           {header}
           <ActionsBlock
@@ -155,7 +193,7 @@ const Block: React.FC<Pick<IProps, 'actions' | 'header' | 'onClose' | 'config'>>
       </BlurView>
     </View>
   )
-}
+})
 
 const ActionsBlock: React.FC<Pick<IProps, 'actions' | 'onClose'| 'config'>> = ({
   actions,
