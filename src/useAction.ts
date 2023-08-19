@@ -5,7 +5,7 @@ const useAction = () => {
   const actionContext = useContext(Context)
   const action = useMemo(() => {
     return actionContext.current
-  }, [actionContext])
+  }, [actionContext.current])
   return action
 }
 
